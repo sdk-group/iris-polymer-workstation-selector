@@ -80,9 +80,13 @@
         workstationType: {
           type: String,
           value: 'control-panel'
+        },
+        disabled: {
+          type: Boolean
         }
       },
       observers: ['_userLogin(isLogged)'],
+
       ready() {
         this.inProgress = false;
       },
@@ -100,6 +104,7 @@
         return selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
       },
       openSelectDialog() {
+        if (this.disabled) return;
         this.$.list.select(-1);
         this.set('workstations', _.map(this.available, ws => {
           let in_use = ws.id == this.current_ws.id;
