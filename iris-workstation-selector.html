@@ -41,6 +41,7 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
+        justify-content: flex-start;
       }
       
       #progress-wrapper {
@@ -49,7 +50,7 @@
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <h2>Сменить рабочее место      </h2>
+      <h2>Сменить рабочее место</h2>
       <paper-dialog-scrollable>
         <div id="progress-wrapper">
           <paper-progress indeterminate hidden="{{!inProgress}}"></paper-progress>
