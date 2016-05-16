@@ -18,23 +18,35 @@
         --paper-progress-transition-timing-function: ease;
         --paper-progress-transition-transition-delay: 0s;
       }
-      
+
       paper-progress {
         width: 100%;
       }
-      
+
       #current-workstation {
         @apply(--layout-horizontal);
         @apply(--layout-center);
+        @apply(--layout-justified);
         cursor: pointer;
         width: 100%;
       }
-      
+
+      #current-workstation a {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+        text-decoration: none;
+        color: #424242;
+      }
+
+      #switch {
+        color: var(--mydoc-brown-1000);
+      }
+
       .ws-in-use {
         color: #ccc;
         font-weight: normal;
       }
-      
+
       paper-item {
         cursor: pointer;
         -webkit-user-select: none;
@@ -43,7 +55,7 @@
         user-select: none;
         justify-content: flex-start;
       }
-      
+
       #progress-wrapper {
         height: 8px;
       }
@@ -68,9 +80,12 @@
     </paper-dialog>
 
     <iris-currentuser id="user" is-logged="{{isLogged}}"></iris-currentuser>
-    <div hidden$="[[!isLogged]]" id="current-workstation" on-tap="openSelectDialog">
-      <content></content>
-      [[label]]
+    <div hidden$="[[!isLogged]]" id="current-workstation">
+      <a href$="[[home]]">
+        <content></content>
+        [[label]]
+      </a>
+      <iron-icon id="switch" icon="exit-to-app" on-tap="openSelectDialog"></iron-icon>
     </div>
   </template>
   <script>
@@ -84,7 +99,8 @@
         },
         disabled: {
           type: Boolean
-        }
+        },
+        home: String
       },
       observers: ['_userLogin(isLogged)'],
 
