@@ -80,7 +80,7 @@
     </paper-dialog>
 
     <iris-currentuser id="user" is-logged="{{isLogged}}"></iris-currentuser>
-    <div hidden$="[[!isLogged]]" id="current-workstation">
+    <div hidden$="[[!isCPAvailable]]" id="current-workstation">
       <a href$="[[home]]">
         <content></content>
         [[label]]
@@ -112,6 +112,8 @@
 
         this.current_ws = this.$.user.getWorkstation(this.workstationType);
         this.available = _.values(this.$.user.getAvailableWorkstations());
+        //@NOTE: delete it after building more complex conception
+        this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
 
         if (!this.current_ws) return;
 
