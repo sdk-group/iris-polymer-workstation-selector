@@ -63,6 +63,9 @@
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <h2>Сменить рабочее место</h2>
+      <div hidden$="[[!isError]]">
+        [[errorText]]
+      </div>
       <paper-dialog-scrollable>
         <div id="progress-wrapper">
           <paper-progress indeterminate hidden="{{!inProgress}}"></paper-progress>
@@ -103,18 +106,19 @@
         home: String
       },
       observers: ['_userLogin(isLogged)'],
-
       ready() {
         this.inProgress = false;
       },
       _userLogin(isLogged) {
-        if (!isLogged) return;
+        if (!isLogged) {
+          this.isCPAvailable = false;
+          return;
+        }
 
         this.current_ws = this.$.user.getWorkstation(this.workstationType);
         this.available = _.values(this.$.user.getAvailableWorkstations());
         //@NOTE: delete it after building more complex conception
         this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
-
         if (!this.current_ws) return;
 
         this.label = this.current_ws.label;
@@ -138,8 +142,9 @@
         let selected_workstation = this.available[this.selectedWS].id;
 
         this.set('inProgress', true);
+        this.set('isError', false);
         this.$.user.switchTo(selected_workstation).then(() => {
-          this.set('inProgress', false);
+
           this.current_ws = this.$.user.getWorkstation(this.workstationType);
           this.label = this.current_ws ? this.current_ws.label : 'Ошибка';
 
@@ -148,6 +153,12 @@
           this.fire('workstation-change', {
             workstation: selected_workstation
           });
+        }).catch((error) => {
+          console.log(error);
+          this.set('isError', true);
+          this.set('errorText', error.reason || "Произошла ошибка");
+        }).finally(() => {
+          this.set('inProgress', false);
         });
       }
     });
