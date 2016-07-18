@@ -63,10 +63,10 @@
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <h2>Сменить рабочее место</h2>
-      <div hidden$="[[!isError]]">
-        [[errorText]]
-      </div>
       <paper-dialog-scrollable>
+        <div hidden$="[[!isError]]">
+          Извините: [[errorText]]
+        </div>
         <div id="progress-wrapper">
           <paper-progress indeterminate hidden="{{!inProgress}}"></paper-progress>
         </div>
@@ -108,6 +108,7 @@
       observers: ['_userLogin(isLogged)'],
       ready() {
         this.inProgress = false;
+        this.isError = false;
       },
       _userLogin(isLogged) {
         if (!isLogged) {
@@ -127,6 +128,7 @@
         return selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
       },
       openSelectDialog() {
+        this.isError = false;
         if (this.disabled) return;
         this.$.list.select(-1);
         this.set('workstations', _.map(this.available, ws => {
@@ -154,9 +156,10 @@
             workstation: selected_workstation
           });
         }).catch((error) => {
-          console.log(error);
           this.set('isError', true);
-          this.set('errorText', error.reason || "Произошла ошибка");
+          let text = error.reason && ~error.reason.indexOf('already occupied') ? "рабочее место занято другим оператором" : "произошла ошибка";
+          this.set('errorText', text);
+          return this.$.user.switchTo(this.current_ws.id);
         }).finally(() => {
           this.set('inProgress', false);
         });
