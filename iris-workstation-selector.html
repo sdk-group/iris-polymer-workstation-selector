@@ -23,7 +23,7 @@
         width: 100%;
       }
 
-      #current-workstation {
+      .workstation-item {
         @apply(--layout-horizontal);
         @apply(--layout-center);
         @apply(--layout-justified);
@@ -31,7 +31,7 @@
         width: 100%;
       }
 
-      #current-workstation a {
+      .workstation-item a {
         @apply(--layout-horizontal);
         @apply(--layout-center);
         text-decoration: none;
@@ -59,6 +59,10 @@
       #progress-wrapper {
         height: 8px;
       }
+
+      #workstations {
+        @apply(--layout-vertical);
+      }
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -83,12 +87,19 @@
     </paper-dialog>
 
     <iris-currentuser id="user" is-logged="{{isLogged}}"></iris-currentuser>
-    <div hidden$="[[!isCPAvailable]]" id="current-workstation">
-      <a href$="[[home]]">
-        <content></content>
-        [[label]]
-      </a>
-      <iron-icon id="switch" icon="exit-to-app" on-tap="openSelectDialog"></iron-icon>
+
+    <div id="workstations">
+      <template is="dom-repeat" items="[[allWorkstations]]">
+        <div class="workstation-item">
+
+          <a href$="[[item.home]]">
+            <iron-icon icon="[[item.icon]]"></iron-icon>
+            <content></content>
+            [[item.label]]
+          </a>
+          <paper-icon-button hidden$="[[!item.hasVariants]]" id="switch" icon="exit-to-app" on-tap="openSelectDialog"></paper-icon-button>
+        </div>
+      </template>
     </div>
   </template>
   <script>
@@ -118,6 +129,10 @@
 
         this.current_ws = this.$.user.getWorkstation(this.workstationType);
         this.available = _.values(this.$.user.getAvailableWorkstations());
+        // this.available_types = _.uniq(_.map(this.available, 'device_type'));
+        // console.log(this.available_types);
+        this.allWorkstations = this.$.user.getAllWorkstations();
+
         //@NOTE: delete it after building more complex conception
         this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
         if (!this.current_ws) return;
@@ -145,7 +160,7 @@
 
         this.set('inProgress', true);
         this.set('isError', false);
-        this.$.user.switchTo(selected_workstation).then(() => {
+        this.$.user.switchTo(selected_workstation, this.current_ws.id).then(() => {
 
           this.current_ws = this.$.user.getWorkstation(this.workstationType);
           this.label = this.current_ws ? this.current_ws.label : 'Ошибка';
