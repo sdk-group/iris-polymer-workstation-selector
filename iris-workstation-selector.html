@@ -59,6 +59,10 @@
       #progress-wrapper {
         height: 8px;
       }
+
+      #list {
+        height: 55vh;
+      }
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -118,10 +122,11 @@
 
         this.current_ws = this.$.user.getWorkstation(this.workstationType);
         this.available = _.values(this.$.user.getAvailableWorkstations());
+        app.set('ws_types', _.uniq(_.map(this.available, 'device_type')));
         //@NOTE: delete it after building more complex conception
         this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
-        if (!this.current_ws) return;
 
+        if (!this.current_ws) return;
         this.label = this.current_ws.label;
       },
       canSelect(selectedWS) {
