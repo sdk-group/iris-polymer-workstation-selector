@@ -13,7 +13,7 @@
         --paper-item: {
           @apply(--layout-justified);
         }
-        --paper-progress-active-color:var(--mydoc-brown-800);
+        --paper-progress-active-color: var(--mydoc-brown-800);
         --paper-progress-transition-duration: 0.08s;
         --paper-progress-transition-timing-function: ease;
         --paper-progress-transition-transition-delay: 0s;
@@ -67,6 +67,7 @@
       #selector-dialog {
         margin-bottom: 160px;
       }
+
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -80,7 +81,10 @@
         </div>
         <paper-listbox id='list' selected="{{selectedWS}}">
           <template is="dom-repeat" items="[[workstations]]">
-            <paper-item><span>[[item.label]]</span> <span class="ws-in-use" hidden$="[[!item.in_use]]">(Используется)</span> </paper-item>
+            <paper-item>
+              <span>[[item.label]]</span>
+              <span class="ws-in-use" hidden$="[[!item.in_use]]">(Используется)</span>
+            </paper-item>
           </template>
         </paper-listbox>
       </paper-dialog-scrollable>
@@ -114,6 +118,7 @@
         home: String
       },
       observers: ['_userLogin(isLogged)'],
+
       ready() {
         this.inProgress = false;
         this.isError = false;
@@ -126,27 +131,30 @@
 
         this.current_ws = this.$.user.getWorkstation(this.workstationType);
         this.available = _.values(this.$.user.getAvailableWorkstations());
-        app.set('ws_types', _.uniq(_.map(this.available, 'device_type')));
-        //@NOTE: delete it after building more complex conception
-        this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
 
-        if (!this.current_ws) return;
+        app.set('ws_types', this.$.user.getAvailableWorkstationTypes());
+        //@NOTE: delete it after building more complex conception
+        this.isCPAvailable = ! !~ app.ws_types.indexOf('control-panel');
+
+        if (!this.current_ws)
+          return;
         this.label = this.current_ws.label;
       },
       canSelect(selectedWS) {
-        return selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
+        return (!this.current_ws) || selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
       },
       openSelectDialog() {
         this.isError = false;
-        if (this.disabled) return;
+        if (this.disabled)
+          return;
         this.$.list.select(-1);
-        this.set('workstations', _.map(this.available, ws => {
-          let in_use = ws.id == this.current_ws.id;
-          return {
-            in_use: in_use,
-            label: ws.label
-          };
-        }));
+        this.set('workstations', _.reduce(this.available, (acc, ws) => {
+          if (ws.device_type != 'control-panel')
+            return acc;
+          let in_use = this.current_ws && ws.id == this.current_ws.id;
+          acc.push({in_use: in_use, label: ws.label});
+          return acc;
+        }, []));
         this.$["selector-dialog"].open();
       },
       confirmSeletion() {
@@ -157,19 +165,21 @@
         this.$.user.switchTo(selected_workstation).then(() => {
 
           this.current_ws = this.$.user.getWorkstation(this.workstationType);
-          this.label = this.current_ws ? this.current_ws.label : 'Ошибка';
+          this.label = this.current_ws
+            ? this.current_ws.label
+            : 'Ошибка';
 
           this.$["selector-dialog"].close();
-
-          this.fire('workstation-change', {
-            workstation: selected_workstation
-          });
+          page('/controlpanel');
+          this.fire('workstation-change', {workstation: selected_workstation});
         }).catch((error) => {
           this.set('isError', true);
-          let text = error.reason && ~error.reason.indexOf('already occupied') ? "рабочее место занято другим оператором" : "произошла ошибка";
+          let text = error.reason && ~ error.reason.indexOf('already occupied')
+            ? "рабочее место занято другим оператором"
+            : "произошла ошибка";
           this.set('errorText', text);
           return this.$.user.switchTo(this.current_ws.id);
-        }).finally(() => {
+        }). finally(() => {
           this.set('inProgress', false);
         });
       }
