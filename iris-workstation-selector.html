@@ -13,7 +13,7 @@
         --paper-item: {
           @apply(--layout-justified);
         }
-        --paper-progress-active-color:var(--mydoc-brown-800);
+        --paper-progress-active-color: var(--mydoc-brown-800);
         --paper-progress-transition-duration: 0.08s;
         --paper-progress-transition-timing-function: ease;
         --paper-progress-transition-transition-delay: 0s;
@@ -27,14 +27,18 @@
         @apply(--layout-horizontal);
         @apply(--layout-center);
         @apply(--layout-justified);
-        cursor: pointer;
         width: 100%;
+        min-height: 40px;
+      }
+      .workstation-item iron-icon {
+        margin-right: 33px;
       }
 
       .workstation-item a {
         @apply(--layout-horizontal);
         @apply(--layout-center);
         text-decoration: none;
+        width: 100%;
         color: #424242;
       }
 
@@ -62,7 +66,9 @@
 
       #workstations {
         @apply(--layout-vertical);
+        width: 100%;
       }
+
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -76,7 +82,10 @@
         </div>
         <paper-listbox id='list' selected="{{selectedWS}}">
           <template is="dom-repeat" items="[[workstations]]">
-            <paper-item><span>[[item.label]]</span> <span class="ws-in-use" hidden$="[[!item.in_use]]">(Используется)</span> </paper-item>
+            <paper-item>
+              <span>[[item.label]]</span>
+              <span class="ws-in-use" hidden$="[[!item.in_use]]">(Используется)</span>
+            </paper-item>
           </template>
         </paper-listbox>
       </paper-dialog-scrollable>
@@ -103,82 +112,104 @@
     </div>
   </template>
   <script>
-    'use strict'
-    Polymer({
-      is: 'iris-workstation-selector',
-      properties: {
-        workstationType: {
-          type: String,
-          value: 'control-panel'
+    (function () {
+      'use strict';
+      let icons = {
+        "reception": "touch-app",
+        "reports": "assessment",
+        "call-center": "date-range",
+        "control-panel": "hardware:desktop-windows"
+      };
+
+      Polymer({
+        is: 'iris-workstation-selector',
+        properties: {
+          workstationType: {
+            type: String,
+            value: 'control-panel'
+          },
+          disabled: {
+            type: Boolean
+          },
+          home: String
         },
-        disabled: {
-          type: Boolean
+        observers: ['_userLogin(isLogged)'],
+        ready() {
+          this.inProgress = false;
+          this.isError = false;
         },
-        home: String
-      },
-      observers: ['_userLogin(isLogged)'],
-      ready() {
-        this.inProgress = false;
-        this.isError = false;
-      },
-      _userLogin(isLogged) {
-        if (!isLogged) {
-          this.isCPAvailable = false;
-          return;
-        }
-
-        this.current_ws = this.$.user.getWorkstation(this.workstationType);
-        this.available = _.values(this.$.user.getAvailableWorkstations());
-        // this.available_types = _.uniq(_.map(this.available, 'device_type'));
-        // console.log(this.available_types);
-        this.allWorkstations = this.$.user.getAllWorkstations();
-
-        //@NOTE: delete it after building more complex conception
-        this.isCPAvailable = !!~this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
-        if (!this.current_ws) return;
-
-        this.label = this.current_ws.label;
-      },
-      canSelect(selectedWS) {
-        return selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
-      },
-      openSelectDialog() {
-        this.isError = false;
-        if (this.disabled) return;
-        this.$.list.select(-1);
-        this.set('workstations', _.map(this.available, ws => {
-          let in_use = ws.id == this.current_ws.id;
-          return {
-            in_use: in_use,
-            label: ws.label
-          };
-        }));
-        this.$["selector-dialog"].open();
-      },
-      confirmSeletion() {
-        let selected_workstation = this.available[this.selectedWS].id;
-
-        this.set('inProgress', true);
-        this.set('isError', false);
-        this.$.user.switchTo(selected_workstation, this.current_ws.id).then(() => {
+        _userLogin(isLogged) {
+          if (!isLogged) {
+            this.isCPAvailable = false;
+            return;
+          }
 
           this.current_ws = this.$.user.getWorkstation(this.workstationType);
-          this.label = this.current_ws ? this.current_ws.label : 'Ошибка';
+          this.available = _.values(this.$.user.getAvailableWorkstations());
+          this.available_count = _.chain(this.available).groupBy('device_type').mapValues(i => i.length).value();
 
-          this.$["selector-dialog"].close();
-
-          this.fire('workstation-change', {
-            workstation: selected_workstation
+          let all = _.map(this.$.user.getAllWorkstations(), ws => {
+            return {
+              label: ws.label,
+              id: ws.id,
+              type: ws.type,
+              icon: icons[ws.type],
+              home: ws.type.replace('-', ''),
+              hasVariants: this.available_count[ws.type] > 1
+            };
           });
-        }).catch((error) => {
-          this.set('isError', true);
-          let text = error.reason && ~error.reason.indexOf('already occupied') ? "рабочее место занято другим оператором" : "произошла ошибка";
-          this.set('errorText', text);
-          return this.$.user.switchTo(this.current_ws.id);
-        }).finally(() => {
-          this.set('inProgress', false);
-        });
-      }
-    });
+
+          this.allWorkstations = all;
+
+          //@NOTE: delete it after building more complex conception
+          this.isCPAvailable = ! !~ this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
+          if (!this.current_ws)
+            return;
+
+          this.label = this.current_ws.label;
+        },
+        canSelect(selectedWS) {
+          return selectedWS !== -1 && this.available[selectedWS].id !== this.current_ws.id;
+        },
+        openSelectDialog() {
+          this.isError = false;
+          if (this.disabled)
+            return;
+          this.$.list.select(-1);
+          this.set('workstations', _.map(this.available, ws => {
+            let in_use = ws.id == this.current_ws.id;
+            return {in_use: in_use, label: ws.label};
+          }));
+          this.$["selector-dialog"].open();
+        },
+        confirmSeletion() {
+          let selected_workstation = this.available[this.selectedWS].id;
+
+          this.set('inProgress', true);
+          this.set('isError', false);
+          this.$.user.switchTo(selected_workstation, this.current_ws.id).then(() => {
+
+            this.current_ws = this.$.user.getWorkstation(this.workstationType);
+            this.label = this.current_ws
+              ? this.current_ws.label
+              : 'Ошибка';
+
+            this.$["selector-dialog"].close();
+
+            this.fire('workstation-change', {workstation: selected_workstation});
+          }).catch((error) => {
+            this.set('isError', true);
+            let text = error.reason && ~ error.reason.indexOf('already occupied')
+              ? "рабочее место занято другим оператором"
+              : "произошла ошибка";
+            this.set('errorText', text);
+            return this.$.user.switchTo(this.current_ws.id);
+          }). finally(() => {
+            this.set('inProgress', false);
+          });
+        }
+      });
+
+    })();
   </script>
 </dom-module>
