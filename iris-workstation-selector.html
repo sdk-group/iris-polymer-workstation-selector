@@ -101,7 +101,7 @@
       <template is="dom-repeat" items="[[allWorkstations]]">
         <div class="workstation-item">
 
-          <a href$="[[item.home]]">
+          <a href$="[[makeUrl(item.home)]]">
             <iron-icon icon="[[item.icon]]"></iron-icon>
             <content></content>
             [[item.label]]
@@ -138,15 +138,20 @@
           this.inProgress = false;
           this.isError = false;
         },
+        makeUrl(item) {
+          return app.baseUrl + item;
+        },
         _userLogin(isLogged) {
           if (!isLogged) {
-            this.isCPAvailable = false;
             return;
           }
 
           this.current_ws = this.$.user.getWorkstation(this.workstationType);
           this.available = _.values(this.$.user.getAvailableWorkstations());
+
           this.available_count = _.chain(this.available).groupBy('device_type').mapValues(i => i.length).value();
+          app.set('ws_types', this.$.user.getSelectedWorkstationTypes());
+          this.set('baseUrl', app.baseUrl);
 
           let all = _.map(this.$.user.getAllWorkstations(), ws => {
             return {
@@ -158,11 +163,10 @@
               hasVariants: this.available_count[ws.type] > 1
             };
           });
-
-          this.allWorkstations = all;
+          this.set('allWorkstations', all);
 
           //@NOTE: delete it after building more complex conception
-          this.isCPAvailable = ! !~ this.$.user.getAvailableWorkstationTypes().indexOf('control-panel');
+
           if (!this.current_ws)
             return;
 
@@ -197,6 +201,17 @@
             this.$["selector-dialog"].close();
 
             this.fire('workstation-change', {workstation: selected_workstation});
+            let all = _.map(this.$.user.getAllWorkstations(), ws => {
+              return {
+                label: ws.label,
+                id: ws.id,
+                type: ws.type,
+                icon: icons[ws.type],
+                home: ws.type.replace('-', ''),
+                hasVariants: this.available_count[ws.type] > 1
+              };
+            });
+            this.set('allWorkstations', all);
           }).catch((error) => {
             this.set('isError', true);
             let text = error.reason && ~ error.reason.indexOf('already occupied')
@@ -205,6 +220,7 @@
             this.set('errorText', text);
             return this.$.user.switchTo(this.current_ws.id);
           }). finally(() => {
+
             this.set('inProgress', false);
           });
         }
