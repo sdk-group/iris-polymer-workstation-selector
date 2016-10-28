@@ -69,6 +69,10 @@
         width: 100%;
       }
 
+      #selector-dialog {
+        margin-bottom: 160px;
+      }
+
     </style>
 
     <paper-dialog id="selector-dialog" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -97,7 +101,7 @@
 
     <iris-currentuser id="user" is-logged="{{isLogged}}"></iris-currentuser>
 
-    <div id="workstations">
+    <div id="workstations" hidden$="[[!isLogged]]">
       <template is="dom-repeat" items="[[allWorkstations]]">
         <div class="workstation-item">
 
