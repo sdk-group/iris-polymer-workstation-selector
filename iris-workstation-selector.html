@@ -30,6 +30,7 @@
         width: 100%;
         min-height: 40px;
       }
+
       .workstation-item iron-icon {
         margin-right: 33px;
       }
@@ -163,7 +164,7 @@
               id: ws.id,
               type: ws.type,
               icon: icons[ws.type],
-              home: ws.type.replace('-', ''),
+              home: ws.route || ws.type.replace('-', ''),
               hasVariants: this.available_count[ws.type] > 1
             };
           });
@@ -184,10 +185,15 @@
           if (this.disabled)
             return;
           this.$.list.select(-1);
-          this.set('workstations', _.map(this.available, ws => {
+          this.set('workstations', _.reduce(this.available, (acc, ws) => {
             let in_use = ws.id == this.current_ws.id;
-            return {in_use: in_use, label: ws.label};
-          }));
+            if (ws.device_type != 'control-panel')
+              return acc;
+
+            acc.push({in_use: in_use, label: ws.label});
+            return acc;
+          }, []));
+
           this.$["selector-dialog"].open();
         },
         confirmSeletion() {
@@ -222,7 +228,7 @@
               ? "рабочее место занято другим оператором"
               : "произошла ошибка";
             this.set('errorText', text);
-            return this.$.user.switchTo(this.current_ws.id);
+            return this.$.user.initWS(_.castArray(this.current_ws.id));
           }). finally(() => {
 
             this.set('inProgress', false);
